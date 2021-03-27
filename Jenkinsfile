@@ -73,12 +73,23 @@ node(){
         }
     }
     stage('6 - Packaging and publishing results'){
-        try {
-            sh "tar -czf pipeline-${student}-${BUILD_NUMBER}.tar.gz helloworld-project/helloworld-ws/target/helloworld-ws.war output.txt"
-            pushToNexus("pipeline-${student}-${BUILD_NUMBER}", 'tar.gz', "pipeline-${student}", "pipeline", "${student}-artifacts")
-        } catch(Exception e){
-            failMessage += "${STAGE_NAME}"
-            currentBuild.result = 'FAILURE'
-        }   
+        parallel(
+            'Stage 1': {
+                stage('Packaging and publishing archive'){
+                    try {
+                        sh "tar -czf pipeline-${student}-${BUILD_NUMBER}.tar.gz helloworld-project/helloworld-ws/target/helloworld-ws.war output.txt"
+                        pushToNexus("pipeline-${student}-${BUILD_NUMBER}", 'tar.gz', "pipeline-${student}", "pipeline", "${student}-artifacts")
+                    } catch(Exception e){
+                        failMessage += "${STAGE_NAME}"
+                        currentBuild.result = 'FAILURE'
+                    }  
+                }
+            },
+            'Stage 2': {
+                stage('Building and publishing docker image'){
+                    pushToDockerReg("helloworld-${student}", "${BUILD_NUMBER}")
+                }
+            }
+        )
     }
 }
