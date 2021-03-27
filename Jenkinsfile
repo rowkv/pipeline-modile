@@ -1,5 +1,7 @@
+@Library('my-shared-library@master')
 def failMessage = 'Pipeline failed on step: '
 def student = 'rrohau'
+
 
 node(){
     stage('1 - Preparation(checking out SCM)'){
@@ -61,7 +63,7 @@ node(){
         }
     }
     stage('5 - Triggering job and fetching artefact after finishing'){
-        try{
+        try {
             def triggerJob = "MNTLAB-${student}-child1-build-job"
             build job: "${triggerJob}", parameters: [string(name: 'BRANCH_NAME', value: "${student}")]
             copyArtifacts(projectName: "${triggerJob}", filter: 'output.txt');
@@ -69,5 +71,14 @@ node(){
             failMessage += "${STAGE_NAME}"
             currentBuild.result = 'FAILURE'
         }
+    }
+    stage('6 - Packaging and publishing results'){
+        try {
+            sh "tar -czf pipeline-${student}-${BUILD_NUMBER}.tar.gz helloworld-project/helloworld-ws/target/helloworld-ws.war output.txt"
+            pushToNexus("pipeline-${student}-${BUILD_NUMBER}", 'tar.gz', "pipeline-${student}", "pipeline", "${student}-artifacts")
+        } catch(Exception e){
+            failMessage += "${STAGE_NAME}"
+            currentBuild.result = 'FAILURE'
+        }   
     }
 }
