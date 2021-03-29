@@ -84,5 +84,6 @@ spec:
         path: /*
         pathType: ImplementationSpecific
 EOF"""
+        sh 'chown jenkins:jenkins manifest.yaml'
     }
 }
